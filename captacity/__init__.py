@@ -128,33 +128,33 @@ def detect_local_whisper(print_info):
 
 def add_captions(
     video_file,
-    output_file = "with_transcript.mp4",
+    output_file="with_transcript.mp4",
 
-    font = "Bangers-Regular.ttf",
-    font_size = 130,
-    font_color = "yellow",
+    font="Bangers-Regular.ttf",
+    font_size=130,
+    font_color="yellow",
 
-    stroke_width = 3,
-    stroke_color = "black",
+    stroke_width=3,
+    stroke_color="black",
 
-    highlight_current_word = True,
-    word_highlight_color = "red",
+    highlight_current_word=True,
+    word_highlight_color="red",
 
-    line_count = 2,
-    fit_function = None,
+    line_count=2,
+    fit_function=None,
 
-    padding = 50,
-    position = ("center", "center"), # TODO: Implement this
+    padding=50,
+    position=("center", "center"),  # Implementing this
 
-    shadow_strength = 1.0,
-    shadow_blur = 0.1,
+    shadow_strength=1.0,
+    shadow_blur=0.1,
 
-    print_info = False,
+    print_info=False,
 
-    initial_prompt = None,
-    segments = None,
+    initial_prompt=None,
+    segments=None,
 
-    use_local_whisper = "auto",
+    use_local_whisper="auto",
 ):
     _start_time = time.time()
 
@@ -188,7 +188,7 @@ def add_captions(
 
     # Open the video file
     video = VideoFileClip(video_file)
-    text_bbox_width = video.w-padding*2
+    text_bbox_width = video.w - padding * 2
     clips = [video]
 
     captions = segment_parser.parse(
@@ -202,12 +202,33 @@ def add_captions(
         ),
     )
 
+    def calculate_position(video, line_data, position):
+        if position[0] == "center":
+            x_pos = "center"
+        elif position[0] == "left":
+            x_pos = padding
+        elif position[0] == "right":
+            x_pos = video.w - padding
+        else:
+            x_pos = position[0]
+
+        if position[1] == "center":
+            y_pos = video.h // 2 - line_data["height"] // 2
+        elif position[1] == "top":
+            y_pos = padding
+        elif position[1] == "bottom":
+            y_pos = video.h - padding - line_data["height"]
+        else:
+            y_pos = position[1]
+
+        return x_pos, y_pos
+
     for caption in captions:
         captions_to_draw = []
         if highlight_current_word:
             for i, word in enumerate(caption["words"]):
-                if i+1 < len(caption["words"]):
-                    end = caption["words"][i+1]["start"]
+                if i + 1 < len(caption["words"]):
+                    end = caption["words"][i + 1]["start"]
                 else:
                     end = word["end"]
 
@@ -222,10 +243,10 @@ def add_captions(
         for current_index, caption in enumerate(captions_to_draw):
             line_data = calculate_lines(caption["text"], font, font_size, stroke_width, text_bbox_width)
 
-            text_y_offset = video.h // 2 - line_data["height"] // 2
+            x_pos, y_pos = calculate_position(video, line_data, position)
             index = 0
             for line in line_data["lines"]:
-                pos = ("center", text_y_offset)
+                pos = (x_pos, y_pos)
 
                 words = line["text"].split()
                 word_list = []
@@ -260,13 +281,13 @@ def add_captions(
                 text = text.set_position(pos)
                 clips.append(text)
 
-                text_y_offset += line["height"]
+                y_pos += line["height"]
 
     end_time = time.time()
     generation_time = end_time - _start_time
 
     if print_info:
-        print(f"Generated in {generation_time//60:02.0f}:{generation_time%60:02.0f} ({len(clips)} clips)")
+        print(f"Generated in {generation_time // 60:02.0f}:{generation_time % 60:02.0f} ({len(clips)} clips)")
 
     if print_info:
         print("Rendering video...")
@@ -285,6 +306,6 @@ def add_captions(
     render_time = total_time - generation_time
 
     if print_info:
-        print(f"Generated in {generation_time//60:02.0f}:{generation_time%60:02.0f}")
-        print(f"Rendered in {render_time//60:02.0f}:{render_time%60:02.0f}")
-        print(f"Done in {total_time//60:02.0f}:{total_time%60:02.0f}")
+        print(f"Generated in {generation_time // 60:02.0f}:{generation_time % 60:02.0f}")
+        print(f"Rendered in {render_time // 60:02.0f}:{render_time % 60:02.0f}")
+        print(f"Done in {total_time // 60:02.0f}:{total_time % 60:02.0f}")
